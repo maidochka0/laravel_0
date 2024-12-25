@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('sales', function (Blueprint $table) {
-            $table->id();
             $table->string('g_number');
             $table->date('date');
             $table->date('last_change_date');
@@ -40,7 +39,7 @@ return new class extends Migration
             $table->string('category');
             $table->string('brand');
             $table->boolean('is_storno')->nullable();
-            $table->timestamps();
+            $table->foreignId('account_id')->nullable()->constrained()->onDelete('cascade');
         });
     }
 

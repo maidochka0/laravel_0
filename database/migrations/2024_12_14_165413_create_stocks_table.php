@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stocks', function (Blueprint $table) {
-            $table->id();
             $table->date('date');
             $table->date('last_change_date');
             $table->string('supplier_article');
@@ -32,6 +31,7 @@ return new class extends Migration
             $table->bigInteger('sc_code');
             $table->decimal('price', 10, 2);
             $table->decimal('discount', 10, 2);
+            $table->foreignId('account_id')->nullable()->constrained()->onDelete('cascade');
         });
     }
 
