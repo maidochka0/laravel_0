@@ -32,6 +32,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2);
             $table->decimal('discount', 10, 2);
             $table->foreignId('account_id')->nullable()->constrained()->onDelete('cascade');
+            $table->timestamps();
         });
     }
 

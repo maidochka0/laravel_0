@@ -31,6 +31,7 @@ return new class extends Migration
             $table->boolean('is_cancel');
             $table->dateTime('cancel_dt')->nullable();
             $table->foreignId('account_id')->nullable()->constrained()->onDelete('cascade');
+            $table->timestamps();
         });
     }
 

@@ -40,6 +40,7 @@ return new class extends Migration
             $table->string('brand');
             $table->boolean('is_storno')->nullable();
             $table->foreignId('account_id')->nullable()->constrained()->onDelete('cascade');
+            $table->timestamps();
         });
     }
 

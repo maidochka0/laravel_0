@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string('warehouse_name');
             $table->bigInteger('nm_id');
             $table->foreignId('account_id')->nullable()->constrained()->onDelete('cascade');
+            $table->timestamps();
         });
     }
 

@@ -31,7 +31,7 @@ RUN mkdir /var/log/cron
 CMD ["sh", "-c", "cron && php-fpm"]
 
 RUN sudo docker-compose up -d
-RUN sudo docker exec composer install
-RUN sudo docker exec composer install
-RUN sudo docker exec php artisan migrate
-RUN sudo docker exec php artisan serve --host=0.0.0.0 --port=9001
+RUN sudo docker exec laravel_0_app_1 composer install
+RUN sudo docker exec laravel_0_app_1 composer install
+RUN sudo docker exec laravel_0_app_1 php artisan migrate
+RUN sudo docker exec laravel_0_app_1 php artisan serve --host=0.0.0.0 --port=9001
