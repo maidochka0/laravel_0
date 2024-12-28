@@ -275,8 +275,8 @@ class ApiDataController extends Controller
     {
         $token = Token::where('value', $tokenValue)->first();
 
-        if ($token) $this->debugMess("currect user is ".Account::find($token->account_id)->name);
-        else $this->debugMess("token not be init");
+        if ($token) $this->debugMess("request to api from account ".Account::find($token->account_id)->name);
+        else $this->debugMess("request to api from anon account. user_id is null");
         
         return optional($token)->account_id;
     }
