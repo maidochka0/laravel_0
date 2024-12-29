@@ -34,6 +34,8 @@ class ApiDataController extends Controller
 
         if (!$page) $page = 1;
         if (!$limit) $limit = 500;
+        if (!$dateFrom) $dateFrom = '2000-01-01';
+        if (!$dateTo) $dateTo = date('Y-m-d');
         if (!$key) $key = All::getPrivateKey();
 
         $isLastPage = false;
@@ -48,11 +50,13 @@ class ApiDataController extends Controller
 
             if ($response->successful()) {
                 $data = $response->json()['data'];
-                $accountId = null;//$this->getAccountIdByToken($key);
 
-                $salesData = [];
-                foreach ($data as $saleData) {
-                    $salesData[] = [
+                $accountId = null;//$this->getAccountIdByToken($key);
+                $this->addAccountIdInData($data, $accountId);
+                Sale::insert($data);
+                gc_collect_cycles();//!!!!без этой хуйни все падает с превышением выделенной памяти. 
+                /*foreach ($data as $saleData) {
+                    $sales = [
                         'g_number' => $saleData['g_number'],
                         'date' => $saleData['date'],
                         'last_change_date' => $saleData['last_change_date'],
@@ -82,8 +86,9 @@ class ApiDataController extends Controller
                         'is_storno' => $saleData['is_storno'],
                         'account_id' => $accountId
                     ];
-                }
-                Sale::insert($salesData);
+                    Sale::insert($sales);
+                }*/
+                
             } else if ($response->status() === 429) {
                 $retryAfter = $response->header('Retry-After', 1); // Получаем время ожидания, если указано, или 1 секунда по умолчанию
                 echo "429_$retryAfter\n";
@@ -91,7 +96,7 @@ class ApiDataController extends Controller
                 continue; // Переходим к следующей итерации циклаreturn response()->json(['message' => 'unsucc'], 500);
             } else return response()->json(['message' => 'unsucc response'], 500);
 
-            print "$page|"; if ($page % 10 === 0) print "<br>";
+            print "$page|"; if ($page % 10 === 0) print "<br>\n";
             if ($page++ === $response->json()['meta']['last_page']) $isLastPage = true;
         }
         print "<hr>!";
