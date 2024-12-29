@@ -99,7 +99,7 @@ class ApiDataController extends Controller
             print "$page|"; if ($page % 10 === 0) print "<br>\n";
             if ($page++ === $response->json()['meta']['last_page']) $isLastPage = true;
         }
-        print "<hr>!";
+        print "<hr>!";print $response->json()['meta']['last_page'];
         return response()->json(['message' => 'succ']);
 
         
@@ -138,6 +138,7 @@ class ApiDataController extends Controller
     private function add($table, $token, Request $request)
     {
         $accountId = $this->getAccountIdByToken($token);
+        DB::table($table)->where('account_id', $accountId)->delete(); //fresh
 
         $dateFrom = $request->input('dateFrom');
         $dateTo = $request->input('dateTo');
@@ -147,7 +148,7 @@ class ApiDataController extends Controller
 
         if (!$page) $page = 1;
         if (!$limit) $limit = 500;
-        if (!$dateFrom) $dateFrom = date('Y-m-d');
+        if (!$dateFrom) $dateFrom =  ($table === 'stocks') ? date('Y-m-d') : '2000-01-01';
         if (!$dateTo) $dateTo = date('Y-m-d');
         if (!$key) $key = All::getPrivateKey();
 
@@ -166,13 +167,14 @@ class ApiDataController extends Controller
                 $this->addAccountIdInData($data, $accountId);
 
                 DB::table($table)->insert($data);
+                gc_collect_cycles();//!!!!без этой хуйни все падает с превышением выделенной памяти. 
             } else if ($response->status() === 429) {
                 $retryAfter = $response->header('Retry-After', 1); // Получаем время ожидания, если указано, или 1 секунда по умолчанию
-                echo "429_$retryAfter\n";
+                echo "!429_$retryAfter\n";
                 sleep($retryAfter); // Ждем указанное время перед повторной попыткой
                 continue; // Переходим к следующей итерации циклаreturn response()->json(['message' => 'unsucc'], 500);
             }else return response()->json(['message' => 'unsucc response'], 500);
-            print $page; //!
+            print "$page|";if ($page % 10 === 0) print '<br>'; //!
 
             if ($page++ === $response->json()['meta']['last_page']) $isLastPage = true;
         }
