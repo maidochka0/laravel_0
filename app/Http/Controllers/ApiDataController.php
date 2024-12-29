@@ -35,7 +35,7 @@ class ApiDataController extends Controller
         if (!$limit) $limit = 500;
         if (!$key) $key = All::getPrivateKey();
 
-        $isLastPage = ($limit === 500) ? false : true;
+        $isLastPage = false;
         while ($isLastPage === false) {
             $response = Http::get("http://89.108.115.241:6969/api/sales", [
                 'dateFrom' => $dateFrom,
@@ -95,40 +95,36 @@ class ApiDataController extends Controller
     public function fetchIncomes(Request $request)
     {
         if ($errResponse = $this->handleRateLimiting($request)) return $errResponse;
-        
-        $dateFrom = $request->input('dateFrom');
-        $dateTo = $request->input('dateTo');
-        $page = $request->input('page');
-        $limit = $request->input('limit');
-        $key = $request->input('key');
 
-        if (!$page) $page = 1;
-        if (!$limit) $limit = 500;
+        $key = $request->input('key');
         if (!$key) $key = All::getPrivateKey();
 
-        $response = Http::get("http://89.108.115.241:6969/api/incomes", [
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'page' => $page,
-            'key' => $key,
-            'limit' => $limit,
-        ]);
-
-        if ($response->successful()) {
-            $table = 'incomes';
-            $data = $response->json()['data'];
-
-            $this->add($table, $data, $key);
-
-            return response()->json(['message' => 'succ']);
-        }
-
-        return response()->json(['message' => 'unsucc'], 500);
+        return $this->add('incomes', $key, $request);
     }
 
     public function fetchStocks(Request $request)
     {
         if ($errResponse = $this->handleRateLimiting($request)) return $errResponse;
+
+        $key = $request->input('key');
+        if (!$key) $key = All::getPrivateKey();
+
+        return $this->add('stocks', $key, $request);
+    }
+
+    public function fetchOrders(Request $request)
+    {
+        if ($errResponse = $this->handleRateLimiting($request)) return $errResponse;
+
+        $key = $request->input('key');
+        if (!$key) $key = All::getPrivateKey();
+
+        return $this->add('orders', $key, $request);
+    }
+
+    private function add($table, $token, Request $request)
+    {
+        $accountId = $this->getAccountIdByToken($token);
 
         $dateFrom = $request->input('dateFrom');
         $dateTo = $request->input('dateTo');
@@ -139,68 +135,30 @@ class ApiDataController extends Controller
         if (!$page) $page = 1;
         if (!$limit) $limit = 500;
         if (!$dateFrom) $dateFrom = date('Y-m-d');
+        if (!$dateTo) $dateTo = date('Y-m-d');
         if (!$key) $key = All::getPrivateKey();
 
-        $response = Http::get("http://89.108.115.241:6969/api/stocks", [
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'page' => $page,
-            'key' => $key,
-            'limit' => $limit,
-        ]);
+        $isLastPage = false;
+        while (!$isLastPage) {
+            $response = Http::get("http://89.108.115.241:6969/api/$table", [
+                'dateFrom' => $dateFrom,
+                'dateTo' => $dateTo,
+                'page' => $page,
+                'key' => $key,
+                'limit' => $limit,
+            ]);
 
-        if ($response->successful()) {
-            $table = 'stocks';
-            $data = $response->json()['data'];
+            if ($response->successful()) {
+                $data = $response->json()['data'];
+                $this->addAccountIdInData($data, $accountId);
 
-            $this->add($table, $data, $key);
+                DB::table($table)->insert($data);
+            } else return response()->json(['message' => 'unsucc response'], 500);print $page;
 
-            return response()->json(['message' => 'succ']);
+            if ($page++ === $response->json()['meta']['last_page']) $isLastPage = true;
         }
-
-        return response()->json(['message' => 'unsucc. try with default par'], 500);
-    }
-
-    public function fetchOrders(Request $request)
-    {
-        if ($errResponse = $this->handleRateLimiting($request)) return $errResponse;
-
-        $dateFrom = $request->input('dateFrom');
-        $dateTo = $request->input('dateTo');
-        $page = $request->input('page');
-        $limit = $request->input('limit');
-        $key = $request->input('key');
-
-        if (!$page) $page = 1;
-        if (!$limit) $limit = 500;
-        if (!$key) $key = All::getPrivateKey();
-
-        $response = Http::get("http://89.108.115.241:6969/api/orders", [
-            'dateFrom' => $dateFrom,
-            'dateTo' => $dateTo,
-            'page' => $page,
-            'key' => $key,
-            'limit' => $limit,
-        ]);
-
-        if ($response->successful()) {
-            $table = 'orders';
-            $data = $response->json()['data'];
-
-            $this->add($table, $data, $key);
-
-            return response()->json(['message' => 'succ']);
-        }
-
-        return response()->json(['message' => 'unsucc'], 500);
-    }
-
-    private function add($table, $data, $token)
-    {
-        $accountId = $this->getAccountIdByToken($token);
-        $this->addAccountIdInData($data, $accountId);
-
-        DB::table($table)->insert($data);
+        
+        return response()->json(['message' => 'succ']);
     }
 
     private function addAccountIdInData(&$data, $id)
