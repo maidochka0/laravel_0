@@ -12,6 +12,7 @@ use App\Models\All;
 use App\Models\Token;
 use App\Models\Account;
 use Carbon\Carbon;
+use GuzzleHttp\Promise;
 
 
 define('DEBUG_MOD', 1);
@@ -47,7 +48,7 @@ class ApiDataController extends Controller
 
             if ($response->successful()) {
                 $data = $response->json()['data'];
-                $accountId = $this->getAccountIdByToken($key);
+                $accountId = null;//$this->getAccountIdByToken($key);
 
                 $salesData = [];
                 foreach ($data as $saleData) {
@@ -83,10 +84,17 @@ class ApiDataController extends Controller
                     ];
                 }
                 Sale::insert($salesData);
-            } else return response()->json(['message' => 'unsucc'], 500);
+            } else if ($response->status() === 429) {
+                $retryAfter = $response->header('Retry-After', 1); // Получаем время ожидания, если указано, или 1 секунда по умолчанию
+                echo "429_$retryAfter\n";
+                sleep($retryAfter); // Ждем указанное время перед повторной попыткой
+                continue; // Переходим к следующей итерации циклаreturn response()->json(['message' => 'unsucc'], 500);
+            } else return response()->json(['message' => 'unsucc response'], 500);
 
-            if (++$page === $response->json()['meta']['last_page']) $isLastPage = true;
+            print "$page|"; if ($page % 10 === 0) print "<br>";
+            if ($page++ === $response->json()['meta']['last_page']) $isLastPage = true;
         }
+        print "<hr>!";
         return response()->json(['message' => 'succ']);
 
         
@@ -153,7 +161,13 @@ class ApiDataController extends Controller
                 $this->addAccountIdInData($data, $accountId);
 
                 DB::table($table)->insert($data);
-            } else return response()->json(['message' => 'unsucc response'], 500);print $page;
+            } else if ($response->status() === 429) {
+                $retryAfter = $response->header('Retry-After', 1); // Получаем время ожидания, если указано, или 1 секунда по умолчанию
+                echo "429_$retryAfter\n";
+                sleep($retryAfter); // Ждем указанное время перед повторной попыткой
+                continue; // Переходим к следующей итерации циклаreturn response()->json(['message' => 'unsucc'], 500);
+            }else return response()->json(['message' => 'unsucc response'], 500);
+            print $page; //!
 
             if ($page++ === $response->json()['meta']['last_page']) $isLastPage = true;
         }
