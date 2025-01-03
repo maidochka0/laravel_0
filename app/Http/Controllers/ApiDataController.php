@@ -79,11 +79,6 @@ class ApiDataController extends Controller
         if (!$dateFrom) $dateFrom =  ($table === 'stocks') ? date('Y-m-d') : '2000-01-01';
         if (!$dateTo) $dateTo = date('Y-m-d');
 
-        DB::table($table)
-            ->where('account_id', $accountId)
-            ->whereBetween('date', [$dateFrom, $dateTo])
-            ->delete();
-
         $isLastPage = false;
         print "table $table:\n";
         while (!$isLastPage) {
@@ -95,8 +90,11 @@ class ApiDataController extends Controller
                 'limit' => $limit,
             ]);
 
-            if ($response->successful()) {
-                $data = $response->json()['data'];
+            if ($response->successful() && $data = $response->json()['data']) {
+                if ($page===1)DB::table($table)
+                    ->where('account_id', $accountId)
+                    ->whereBetween('date', [$dateFrom, $dateTo])
+                    ->delete();
                 $this->addAccountIdInData($data, $accountId);
 
                 DB::table($table)->insert($data);
